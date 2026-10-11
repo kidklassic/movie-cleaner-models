@@ -18,6 +18,10 @@ The files are unchanged copies, made by the
 [`mirror.yml`](.github/workflows/mirror.yml) workflow, which also checks each model
 against Hugging Face's own fingerprint before publishing.
 
+## Support
+
+Movie Cleaner is free. If it helps your family, you can [buy me a coffee on Ko-fi](https://ko-fi.com/kashmajd) ☕
+
 ## App version file
 
 `app-version.json` tells installed copies of Movie Cleaner what the newest version is.
