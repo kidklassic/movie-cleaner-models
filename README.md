@@ -18,6 +18,12 @@ The files are unchanged copies, made by the
 [`mirror.yml`](.github/workflows/mirror.yml) workflow, which also checks each model
 against Hugging Face's own fingerprint before publishing.
 
+## App version file
+
+`app-version.json` tells installed copies of Movie Cleaner what the newest version is.
+When you release a new version, change `version` (and `download` if the link moves) –
+everyone on an older version will see a small “Version x.y.z is available” button.
+
 ## License
 
 These are [OpenAI Whisper](https://github.com/openai/whisper) models converted to
