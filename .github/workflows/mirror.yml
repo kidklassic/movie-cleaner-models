@@ -1,0 +1,54 @@
+name: Copy speech models into a release
+
+# Run by hand from the Actions tab. Downloads the exact model versions listed in
+# models.json from Hugging Face and attaches them to the "models-v1" release.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download pinned models from Hugging Face
+        run: |
+          set -euo pipefail
+          mkdir dist
+          for name in $(jq -r 'keys[]' models.json); do
+            repo=$(jq -r ".${name}.repo" models.json)
+            rev=$(jq -r ".${name}.revision" models.json)
+            for file in config.json model.bin tokenizer.json vocabulary.txt; do
+              echo "Downloading ${repo}@${rev:0:7} ${file}"
+              curl -fsSL --retry 5 -o "dist/${name}-${file}" \
+                "https://huggingface.co/${repo}/resolve/${rev}/${file}"
+            done
+          done
+          cd dist && sha256sum * | tee SHA256SUMS.txt
+
+      - name: Check model.bin fingerprints against Hugging Face
+        run: |
+          set -euo pipefail
+          for name in $(jq -r 'keys[]' models.json); do
+            repo=$(jq -r ".${name}.repo" models.json)
+            rev=$(jq -r ".${name}.revision" models.json)
+            want=$(curl -fsSL "https://huggingface.co/api/models/${repo}/tree/${rev}" \
+                   | jq -r '.[] | select(.path=="model.bin") | .lfs.oid')
+            got=$(sha256sum "dist/${name}-model.bin" | cut -d' ' -f1)
+            echo "${name}: expected ${want}  got ${got}"
+            test "${want}" = "${got}"
+          done
+
+      - name: Publish to the models-v1 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view models-v1 >/dev/null 2>&1; then
+            gh release create models-v1 --title "Speech models v1" \
+              --notes "Pinned copies of the faster-whisper speech models used by Movie Cleaner. See README for sources and license."
+          fi
+          gh release upload models-v1 dist/* --clobber
